@@ -1,0 +1,232 @@
+---
+title: "Pelagic regionalisation - WSMPA Phase 2"
+date: "`r Sys.Date()`"
+output: distill::distill_article
+author:
+  - name: "Ben Raymond"
+    affiliation: Australian Antarctic Division
+  - name: "Yoshie Kasajima"
+    affiliation: Norwegian Polar Institute
+  - name: "Gary Griffith"
+    affiliation: Norwegian Polar Institute
+
+---
+
+```{r chunkopts, eval = TRUE, echo = FALSE}
+knitr::opts_chunk$set(eval = TRUE, echo = TRUE, message = FALSE, warning = FALSE, tidy = FALSE, cache = TRUE, include = TRUE, dpi = 72, fig.width = 10, fig.height = 8, fig.align = "center", results = "markup")
+```
+
+```{r}
+library(cluster)
+library(vegan)
+library(raster)
+library(sp)
+library(SOmap)
+library(ggplot2)
+
+working_crs <- "+proj=laea"
+roi_ll <- c(0, 30, -72, -60)
+temp <- raster(crs = "+proj=longlat")
+extent(temp) <- roi_ll
+roi <- extent(projectExtent(temp, crs = working_crs))
+
+```
+
+Some settings:
+
+```{r settings}
+## number of clusters to produce in the non-hierarchical clustering step
+num_groups_intermediate <- 200
+
+## final number of clusters
+n_groups <- 7L
+
+## which columns are the data columns to use for the clustering
+datcols <- c("ice", "sst", "depth")
+
+## see ?clara. Use a smaller number for exploratory runs
+clara_samples <- 50L
+
+```
+# Processing
+
+Prepare data layers (or load the pre-prepared file):
+
+```{r dataprep}
+if (!file.exists("../data/env_stack.rds")) {
+    library(raadtools)
+
+    working_template <- raster(crs = working_crs)
+    extent(working_template) <- roi
+    res(working_template) <- c(4e3L, 4e3L)
+
+    ps_ice_proj <- "+proj=stere +lat_0=-90 +lat_ts=-70 +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378273 +b=6356889.449 +units=m +no_defs"
+    ice <- raster("/rdsi/PUBLIC/raad/data/webdav.data.aad.gov.au/data/environmental/derived_v2/antarctic/native_grid/seaice_ge_85.nc")
+    projection(ice) <- ps_ice_proj
+    extent(temp) <- roi_ll + c(-2, 2, -2, 2)
+    ice <- crop(ice, projectExtent(temp, crs = ps_ice_proj))
+    ice <- projectRaster(ice, working_template, method = "ngb")
+
+    sst <- raster("/rdsi/PUBLIC/raad/data/webdav.data.aad.gov.au/data/environmental/derived_v2/antarctic/native_grid/sst_modisa_summer_mean.nc")
+    sst <- crop(sst, extent(roi_ll + c(-2, 12, -2, 2)))
+    sst <- projectRaster(sst, working_template, method = "ngb")
+
+    depth <- readtopo("ibcso")
+    depth <- crop(depth, extent(c(-2e5, 3e6, 1e6, 4e6)))
+    depth <- projectRaster(depth, working_template, method = "ngb")
+    depth[depth >= 0] <- NA_real_
+    depth <- log10(-depth)
+
+    shflux <- raster("/rdsi/PUBLIC/raad/data/webdav.data.aad.gov.au/data/environmental/derived_v2/antarctic/common_grid/ecaisom_shflux_mean.nc")
+    shflux <- crop(shflux, extent(roi_ll + c(-2, 12, -2, 2)))
+    shflux <- projectRaster(shflux, working_template, method = "ngb")
+
+    xs <- stack(ice, sst, depth, shflux)
+    names(xs) <- c("ice", "sst", "depth", "shflux")
+    saveRDS(xs, "../data/env_stack.rds")
+} else {
+    xs <- readRDS("../data/env_stack.rds")
+}
+
+x <- as.data.frame(xs, xy = TRUE)
+
+```
+
+Mask out land and pixels outside of our region of interest:
+
+```{r mask}
+crds <- as.data.frame(coordinates(xs))
+coordinates(crds) <- ~x + y
+projection(crds) <- working_crs
+crds_ll <- coordinates(spTransform(crds, CRS("+proj=longlat")))
+mask <- crds_ll[, 1] >= roi_ll[1] & crds_ll[, 1] <= roi_ll[2] & crds_ll[, 2] >= roi_ll[3] & crds_ll[, 2] <= roi_ll[4] & rowSums(is.na(x)) < 1
+
+```
+
+Clustering:
+
+```{r clust}
+xraw <- x
+
+## normalize data ranges to 0-1
+for (k in datcols) {
+    x[[k]] <- x[[k]] - min(x[[k]], na.rm = TRUE)
+    x[[k]] <- x[[k]] / (max(x[[k]], na.rm = TRUE))
+}
+
+## non-hierarchical clustering step
+cl <- clara(x[mask, datcols], num_groups_intermediate, metric = "manhattan", stand = FALSE, samples = clara_samples)
+cluster_num <- rep(NA, nrow(x))
+cluster_num[mask] <- cl$clustering
+
+## now do a hierarchical clustering using the output of the nonhierarchical step
+## first calculate mean properties of the nonhierarchical clusters
+xc <- matrix(NA, nrow = num_groups_intermediate, ncol = length(datcols))
+u_cluster_num <- na.omit(unique(cluster_num))
+for (k in seq_along(u_cluster_num)) {
+    tempidx <- which(cluster_num == u_cluster_num[k])
+    xc[k, ] <- colMeans(x[tempidx, datcols])
+}
+
+## dissimilarities of these clusters
+D <- vegdist(xc, method = "gower")
+hcl <- hclust(D, method = "ave")
+
+## now extract the desired number of groups from the dendrogram
+if (floor(n_groups) == n_groups) {
+    ## we specified a number of groups directly
+    cn_new <- cutree(hcl, k = n_groups)
+    ## work out the dissimilarity level (height) that corresponds to this number of groups
+    temph <- mean(c(hcl$height[length(hcl$height) + 2 - n_groups], hcl$height[length(hcl$height) + 2 - n_groups - 1]))
+} else {
+    ## we specified a height at which to cut the dendrogram
+    ## show on the dendrogram the height at which we are cutting
+    temph <- n_groups
+    cn_new <- cutree(hcl, h = n_groups)
+    n_groups <- length(unique(cn_new))
+}
+
+cluster_num_new <- rep(NA_integer_, length(cluster_num))
+for (k in seq_along(u_cluster_num)) {
+    tempidx <- which(cluster_num == u_cluster_num[k])
+    cluster_num_new[tempidx] <- cn_new[k]
+}
+
+x$cluster_num <- as.factor(cluster_num_new)
+
+```
+
+# Results
+
+## Dendrogram
+
+
+```{r dendro, layout="l-page"}
+
+cmap <- head(c("#C7D79EFF", "#FA9864FF", "#BEFFE8FF", "#D69DBCFF", "#F7ED59FF", "#A5F57AFF", "#FF3D4AFF", "#7AB6F5FF", "#369C5DFF", "#A80084FF", "#AA66CDFF",
+               "#FFAA00FF", "#7AF5CAFF", "#FFBEBEFF", "#0070FFFF", "#E9FFBEFF"), n_groups)
+
+plot(hcl, labels = FALSE, hang = -1)
+lines(c(1, num_groups_intermediate), c(temph, temph), lty = 2, col = 2)
+## add markers for group labels
+dorder <- order.dendrogram(as.dendrogram(hcl))
+for (k in seq_len(n_groups)) {
+    temp <- which(cn_new[dorder] == k)
+    points(temp, rep(-0.02, length(temp)), col = cmap[k], bg = cmap[k], pch = 21, cex = 2)
+}
+
+```
+
+## Map
+
+```{r map, layout="l-page"}
+
+## helper function to change SOmap internals to show cluster, not depth
+SO2clust <- function(p) {
+    p$init[[1]]$plotargs$data$Depth <- as.factor(p$init[[1]]$plotargs$data$Depth)
+    p$init[[1]]$plotargs$data <- p$init[[1]]$plotargs$data[!is.na(p$init[[1]]$plotargs$data$Depth), ]
+    p$scale_fill[[1]]$plotfun <- "ggplot2::scale_fill_manual"
+    p$scale_fill[[1]]$plotargs = list(values = cmap, name = "Cluster")
+    p
+}
+
+temp <- x[, c("x", "y", "cluster_num")]
+temp <- rasterFromXYZ(temp[!is.na(temp$cluster_num), ], crs = working_crs)
+p <- SOgg(SOmap_auto(temp, bathy = temp))
+plot(SO2clust(p))
+
+```
+
+## Coastal zoomed map
+
+```{r map2, layout = "l-page"}
+temp <- x[, c("x", "y", "cluster_num")]
+temp <- rasterFromXYZ(temp[crds_ll[, 2] <= -69 & !is.na(temp$cluster_num), ], crs = working_crs)
+p <- SOgg(SOmap_auto(temp, bathy = temp))
+plot(SO2clust(p))
+
+```
+
+## Environmental properties by cluster
+
+```{r violin, layout="l-page"}
+alldatcols <- setdiff(names(x), c("x", "y", "cluster_num"))
+xraw$cluster_num <- x$cluster_num
+px <- tidyr::pivot_longer(xraw[!is.na(xraw$cluster_num), ], cols = alldatcols, names_to = "variable")
+
+ggplot(px, aes(x = cluster_num, y = value, group = cluster_num, fill = as.factor(cluster_num))) + geom_violin() +
+    facet_wrap(~variable, scales = "free_y") + scale_fill_manual(values = cmap, name = "Cluster") + theme_bw()
+
+```
+
+## Comparison to the AWI Weddell Sea regionalisation
+
+```{r awi, layout="l-page"}
+awi_x <- shapefile("../data/Data_shapefile_raster/thematic_layer/Pelagic_regionalisation.shp")
+awi_cmap <- c("#0070ff", "#ffbee8", "#5ebd00", "#ffff00", "#c1e800", "#a8a800", "#ffbf00", "#ff5500")
+awi_x <- fortify(spTransform(awi_x, working_crs))
+ggplot(awi_x, aes(long, lat, fill = id, group = group)) + geom_polygon() + coord_fixed() +
+    scale_fill_manual(values = awi_cmap, name = "Cluster") + theme_bw() + xlim(roi[1:2]) + ylim(roi[3:4])
+
+```
+

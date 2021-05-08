@@ -1,0 +1,67 @@
+-----------------------------------------------------------------------------------------
+###       Pelagic regionalisation approach in the wider Weddell Sea (Antarctica)    ###
+-----------------------------------------------------------------------------------------
+
+# Description #
+---------------
+
+Here we provide an ArcGIS map package on the pelagic regionalisation in the wider Weddell Sea (Antarctica), which were created in the context of the development of a 
+marine protected area (MPA) in the Weddell Sea. 
+
+For the pelagic regionalisation following parameters were incorporated: (i) ice coverage from AMSR-E sea ice maps, (ii) bathymetric data from the International Bathymetric Chart 
+of the Southern Ocean (IBCSO), and (iii) seawater temperature and salinity data from the Finite Element Sea Ice - Ocean Model (FESOM) provided by R. Timmermann (AWI). 
+To classify different pelagic areas we have applied K-means clustering algorithm and 'clusGap' function from R package 'cluster'. Coastal polynyas mainly occurred east and west 
+of the Prime Meridian (between 20°W to 30°E) as well as around the tip of Antarctic Peninsula, whereas the inner Weddell Sea was characterised by perennial ice-coverage. 
+The largest area proportion of the wider Weddell Sea were classified by above average large water depths and relative high probabilities of ice-free days.
+
+More information on the spatial analysis is given in working paper WG-EMM-16/03 submitted to the CCAMLR Working Group on Ecosystem Monitoring and Management 
+(available at https://www.ccamlr.org/en/wg-emm-16).
+
+
+AMSR-E sea ice maps
+-------------------
+
+High resolution AMSR-E 89 GHz sea ice concentration maps, 2002 - Oct2011, are publicly available from the Institute of Environmental Physics, University of Bremen (http://www.iup.uni-bremen.de/seaice/amsr/). The ARTIST Sea Ice (ASI) concentration algorithm was used with a spatial resolution of 6.25 km x 6.25 km (Spreen et al. 2008).
+
+Downloaded December 2013 from https://seaice.uni-bremen.de/data/amsre/asi_daygrid_swath/s6250/
+
+Contact: Institute of Environmental Physics (University of Bremen, P.O. Box 330440, D-28334 Bremen), Spreen, G
+
+Reference: Spreen, G., L. Kaleschke, and G.Heygster(2008) Sea ice remote sensing using AMSR-E 89 GHz channels, J. Geophys. Res., Vol. 113, C02S03, doi:10.1029/2005JC003384. 
+
+
+IBCSO (International Bathymetric Chart of the Southern Ocean)
+-------------------------------------------------------------
+
+IBCSO Version 1.0 DBM is publicly available together with a digital chart for printing from the project website (www.ibcso.org) and at http://dx.doi.org/10.1594/PANGAEA.805736
+
+Downloaded April 2013 from https://doi.pangaea.de/10.1594/PANGAEA.805734?format=html#download
+
+Downloaded file: Polar stereographic with true scale at 65° referenced to WGS84 ellipsoid, resolution 500 m
+
+References to original dataset: 
+Arndt, JE; Schenke, HW; Jakobsson, M; Nitsche, FO; Buys, G; Goleby, B; Rebesco, M; Bohoyo, F; Hong,JK; Black, J; Greku, R Kh; Udintsev, G B; Barrios, F; Reynoso-Peralta, W; Taisei, 
+M; Wigley, R (2013): The International Bathymetric Chart of the Southern Ocean (IBCSO) - digital chart for printing. Alfred Wegener Institute, Helmholtz Centre for Polar and Marine 
+Research, Bremerhaven, PANGAEA, https://doi.org/10.1594/PANGAEA.805735.
+
+
+FESOM (Finite Element Sea Ice - Ocean Model)
+--------------------------------------------
+
+For the pelagic regionalisation analysis temperature and salinity data were used where FESOM was initialised on January, 1st 1980 with hydrographic data from the Polar Science
+Center Hydrographic Climatology (Steele et al. 2001), and forced with NCEP daily atmospheric re-analysis data (Kalnay et al. 1996) for 1980 - 2009.
+
+Data provider: Alfred Wegener Institute, Timmermann, R; Contact Email: ralph.timmermann@awi.de 
+
+
+References to FESOM model:
+Timmermann R, Danilov S, Schröter J, Böning C, Sidorenko D, Rollenhagen K (2009) Ocean circulation and sea ice distribution in a finite element global sea ice-ocean model. 
+Ocean Modelling, 27, 114–129; doi:10.1016/j.ocemod.2008.10.009.
+
+Steele M, Morley R, Ermold W (2001) PHC: A global ocean hydrography with a high quality Arctic Ocean. Journal of Climate, 14, 2079–2087.
+
+Kalnay E, Kanamitsu M, Kistler R, Collins W, Deaven D, Gandin L, Iredell M, Saha S, White G, Woollen J, Zhu Y, Chelliah M, Ebisuzaki W, Higgins W, Janowiak J, Mo KC, Ropelewski C, 
+Wang J, Leetmaa A, Reynolds R, Jenne R, Joseph D (1996) The NCEP/NCAR 40-year reanalysis project, Bulletin of the American Meteorological Society, 77, 437–471.
+
+Haid V, Timmermann R (2013) Simulated heat flux and sea ice production at coastal polynyas in the southwestern Weddell Sea, Journal of Geophysical Research, 118(5), 2640-2652, 
+doi:10.1002/jgrc.20133.
