@@ -225,8 +225,11 @@ ggplot(px, aes(x = cluster_num, y = value, group = cluster_num, fill = as.factor
 awi_x <- shapefile("../data/Data_shapefile_raster/thematic_layer/Pelagic_regionalisation.shp")
 awi_cmap <- c("#0070ff", "#ffbee8", "#5ebd00", "#ffff00", "#c1e800", "#a8a800", "#ffbf00", "#ff5500")
 awi_x <- fortify(spTransform(awi_x, working_crs))
+leg <- png::readPNG("./awi_key.png")
 ggplot(awi_x, aes(long, lat, fill = id, group = group)) + geom_polygon() + coord_fixed() +
-    scale_fill_manual(values = awi_cmap, name = "Cluster") + theme_bw() + xlim(roi[1:2]) + ylim(roi[3:4])
+    scale_fill_manual(values = awi_cmap, name = "Cluster") + theme_bw() + xlim(roi[1:2]) + ylim(roi[3:4]) +
+    guides(fill = FALSE) +
+    annotation_raster(leg, xmin = 14e5, xmax = 20e5, ymin = -75e5, ymax = -68e5)
 
 ```
 
