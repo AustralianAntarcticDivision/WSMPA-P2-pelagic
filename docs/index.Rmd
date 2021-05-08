@@ -50,6 +50,12 @@ clara_samples <- 50L
 ```
 # Processing
 
+Method follows:
+
+- Raymond B (2011) A circumpolar pelagic regionalisation of the Southern Ocean. CCAMLR WS-MPA, Brest, France, 29 Aug–2 Sep 2011. Document WS-MPA-11/6
+
+- Y Kasajima Y, Griffith G, Hatterman T, Moreau S on behalf of the Norwegian WSMPA Phase 2 (MAUD) project team. A hierarchical classification of pelagic ecoregions for an area assessment of potential marine protected areas for WSMPA Phase 2.
+
 Prepare data layers (or load the pre-prepared file):
 
 ```{r dataprep}
@@ -220,6 +226,8 @@ ggplot(px, aes(x = cluster_num, y = value, group = cluster_num, fill = as.factor
 ```
 
 ## Comparison to the AWI Weddell Sea regionalisation
+
+See Teschke et al. (2020) [10.5194/essd-12-1003-2020](https://doi.org/10.5194/essd-12-1003-2020) and SC-CAMLR-XXXIII/BG/02.
 
 ```{r awi, layout="l-page"}
 awi_x <- shapefile("../data/Data_shapefile_raster/thematic_layer/Pelagic_regionalisation.shp")
