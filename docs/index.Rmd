@@ -98,6 +98,15 @@ x <- as.data.frame(xs, xy = TRUE)
 
 ```
 
+Plot:
+
+```{r envplot, layout="l-page"}
+plot(xs, col = viridis::viridis(51))
+
+```
+
+We include surface heat flux (as an indicator of polynyas) for comparison with the sea ice layer, though heat flux isn't used in the actual regionalisation calculations.
+
 Mask out land and pixels outside of our region of interest:
 
 ```{r mask}
