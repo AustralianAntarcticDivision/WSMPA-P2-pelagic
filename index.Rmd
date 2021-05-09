@@ -169,6 +169,9 @@ for (k in seq_along(u_cluster_num)) {
 
 x$cluster_num <- as.factor(cluster_num_new)
 
+## write.csv(x, "results.csv", row.names = FALSE)
+## R.utils::gzip("results.csv")
+
 ```
 
 # Results
